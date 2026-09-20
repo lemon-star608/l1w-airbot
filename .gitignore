@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# CMake
+build/
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+
+# Robot runtime artifacts
+logs/
+airbot_logs/
+*.log
+*.zip
+*.ko
+
+# Local generated libraries and Python extensions
+*.so
+*.a
+
+# Editor state
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,3 @@
+[submodule "third_party/genisom_L1_sdk"]
+	path = third_party/genisom_L1_sdk
+	url = https://github.com/zsibot/genisom_L1_sdk.git
