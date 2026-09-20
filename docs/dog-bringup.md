@@ -123,7 +123,7 @@ were observed to cause small corrective motion, while the validated
 The first bounded integrated test is:
 
 ```sh
-PYTHONPATH=. /home/lemon/miniconda3/envs/airbot/bin/python -m l1w_teleop \
+PYTHONPATH=. python3 -m l1w_teleop \
   --source xrt --command-mode trace --dog-backend l1w \
   --arm-backend mock --duration 8
 ```
@@ -138,7 +138,7 @@ runs until right B commands damping or the operator stops it with Ctrl+C.
 Press right B before Ctrl+C whenever practical.
 
 ```sh
-PYTHONPATH=. /home/lemon/miniconda3/envs/airbot/bin/python -m l1w_teleop \
+PYTHONPATH=. python3 -m l1w_teleop \
   --source xrt --command-mode trace --dog-backend l1w \
   --arm-backend mock --duration 0
 ```
@@ -166,7 +166,7 @@ airbot-arm --no-return -i can1 -t airbot_play_g2 --address 127.0.0.1:50051
 Then run the combined client from the repository root:
 
 ```sh
-PYTHONPATH=. /home/lemon/miniconda3/envs/airbot/bin/python -m l1w_teleop \
+PYTHONPATH=. python3 -m l1w_teleop \
   --source xrt --command-mode hardware \
   --dog-backend l1w --arm-backend airbot --arm-mode pose \
   --arm-pose-scale 0.5
