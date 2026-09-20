@@ -99,6 +99,22 @@ def run() -> None:
 
 
 def _parse_args():
+    parser = _argument_parser()
+    args = parser.parse_args()
+    if not 0.0 < args.arm_pose_scale:
+        parser.error("--arm-pose-scale must be positive")
+    for name in (
+        "--dog-forward-scale",
+        "--dog-lateral-scale",
+        "--dog-rotate-scale",
+    ):
+        value = getattr(args, name[2:].replace("-", "_"))
+        if not 0.0 <= value <= 1.0:
+            parser.error(f"{name} must be between 0 and 1")
+    return args
+
+
+def _argument_parser():
     parser = argparse.ArgumentParser(description="Read-only PICO controller monitor")
     parser.add_argument("--source", choices=("mock", "xrt"), default="mock")
     parser.add_argument("--rate", type=float, default=50.0)
@@ -159,31 +175,12 @@ def _parse_args():
     )
     parser.add_argument(
         "--lock-arm-orientation",
-        action="store_true",
-        help="Hold the SDK return-zero orientation and control position only.",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Hold the SDK return-zero orientation and control position only "
+        "(default: true).",
     )
-    parser.add_argument(
-        "--i-understand-this-will-move-the-airbot",
-        action="store_true",
-        help="Required confirmation for hardware AIRBOT teleoperation.",
-    )
-    parser.add_argument(
-        "--i-understand-this-will-control-the-dog",
-        action="store_true",
-        help="Required confirmation for the real L1-W control backend.",
-    )
-    args = parser.parse_args()
-    if not 0.0 < args.arm_pose_scale:
-        parser.error("--arm-pose-scale must be positive")
-    for name in (
-        "--dog-forward-scale",
-        "--dog-lateral-scale",
-        "--dog-rotate-scale",
-    ):
-        value = getattr(args, name[2:].replace("-", "_"))
-        if not 0.0 <= value <= 1.0:
-            parser.error(f"{name} must be between 0 and 1")
-    return args
+    return parser
 
 
 def _make_dog_client(args):
@@ -194,9 +191,8 @@ def _make_dog_client(args):
     if not _real_dog_run_is_confirmed(args):
         raise RuntimeError(
             "real L1-W control requires source xrt, 5-30 s duration or 0 for "
-            "run-until-stop, 10-100 Hz rate, and the explicit confirmation "
-            "flag; in hardware mode it must be paired with confirmed AIRBOT "
-            "pose teleoperation"
+            "run-until-stop, 10-100 Hz rate, and a valid command mode; in "
+            "hardware mode it must be paired with AIRBOT pose teleoperation"
         )
     return L1WDogClient(
         host=args.dog_host,
@@ -208,8 +204,7 @@ def _make_dog_client(args):
 
 def _real_dog_run_is_confirmed(args):
     confirmed = (
-        args.i_understand_this_will_control_the_dog
-        and args.source == "xrt"
+        args.source == "xrt"
         and (args.duration == 0 or 5 <= args.duration <= 30)
         and 10 <= args.rate <= 100
     )
@@ -263,15 +258,15 @@ def _make_arm_client(args):
         )
     if not _hardware_run_is_confirmed(args):
         raise RuntimeError(
-            "hardware AIRBOT teleoperation requires the explicit confirmation flag"
+            "hardware AIRBOT teleoperation requires source xrt, pose mode, the "
+            "AIRBOT backend, and a 10-100 Hz rate"
         )
     return AirbotArmClient(host=args.arm_host, port=args.arm_port)
 
 
 def _hardware_run_is_confirmed(args):
     return (
-        args.i_understand_this_will_move_the_airbot
-        and args.source == "xrt"
+        args.source == "xrt"
         and args.arm_mode == "pose"
         and args.arm_backend == "airbot"
         and 10 <= args.rate <= 100

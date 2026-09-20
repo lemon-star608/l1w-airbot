@@ -113,13 +113,12 @@ cd ~/ws/pico-L1W
 PYTHONPATH=. python3 -m l1w_teleop \
   --source xrt --command-mode hardware \
   --dog-backend l1w --arm-backend airbot --arm-mode pose \
-  --rate 50 --lock-arm-orientation --arm-pose-scale 1.0 \
-  --i-understand-this-will-control-the-dog \
-  --i-understand-this-will-move-the-airbot
+  --duration 0
 ```
 
-This is the same command already validated on the development machine. On the
-NX, `--arm-host` defaults to localhost and `--dog-host` defaults to
+This is the same command already validated on the development machine. The
+defaults are 50 Hz, locked arm orientation, and one-to-one PICO pose tracking.
+On the NX, `--arm-host` defaults to localhost and `--dog-host` defaults to
 `192.168.234.1`, so neither needs changing.
 
 Operator sequence: left X stands the dog and enters motion mode; left trigger

@@ -125,8 +125,7 @@ The first bounded integrated test is:
 ```sh
 PYTHONPATH=. /home/lemon/miniconda3/envs/airbot/bin/python -m l1w_teleop \
   --source xrt --command-mode trace --dog-backend l1w \
-  --arm-backend mock --duration 8 \
-  --i-understand-this-will-control-the-dog
+  --arm-backend mock --duration 8
 ```
 
 Keep the handheld safety controller available and verify one complete
@@ -141,8 +140,7 @@ Press right B before Ctrl+C whenever practical.
 ```sh
 PYTHONPATH=. /home/lemon/miniconda3/envs/airbot/bin/python -m l1w_teleop \
   --source xrt --command-mode trace --dog-backend l1w \
-  --arm-backend mock --duration 0 \
-  --i-understand-this-will-control-the-dog
+  --arm-backend mock --duration 0
 ```
 
 For debugging a nonmoving walk command, add `--print-every 1`. Watch the
@@ -171,9 +169,7 @@ Then run the combined client from the repository root:
 PYTHONPATH=. /home/lemon/miniconda3/envs/airbot/bin/python -m l1w_teleop \
   --source xrt --command-mode hardware \
   --dog-backend l1w --arm-backend airbot --arm-mode pose \
-  --rate 50 --lock-arm-orientation --arm-pose-scale 0.5 \
-  --i-understand-this-will-control-the-dog \
-  --i-understand-this-will-move-the-airbot
+  --arm-pose-scale 0.5
 ```
 
 This is deliberately time-shared, not simultaneous motion. Right grip controls

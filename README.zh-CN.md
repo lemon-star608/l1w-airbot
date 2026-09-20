@@ -186,9 +186,7 @@ cd ~/ws/pico-L1W
 PYTHONPATH=. python3 -m l1w_teleop \
   --source xrt --command-mode hardware \
   --dog-backend l1w --arm-backend airbot --arm-mode pose \
-  --rate 50 --lock-arm-orientation --arm-pose-scale 1.0 \
-  --i-understand-this-will-control-the-dog \
-  --i-understand-this-will-move-the-airbot
+  --duration 0
 ```
 
 操作方式：
@@ -248,8 +246,8 @@ NX 上是 `/usr/bin/python3.10`，不要和 Conda 环境混用。
 
 ## 安全边界
 
-程序默认是 monitor 模式，不会分发控制命令。真实运动必须显式传入确认参数。
-硬件测试时保持手持安全遥控器可用，并确保运动区域无人和障碍物。AIRBOT 使用
+程序默认是 monitor 模式，不会分发控制命令。真实运动必须显式选择 hardware
+模式和真实后端。硬件测试时保持手持安全遥控器可用，并确保运动区域无人和障碍物。AIRBOT 使用
 `can1`，不使用 NX 板载 CAN `can0`。
 
 历史设计记录在 `docs/archive/ROADMAP-2026-09.md`。当前操作流程以 `docs/`

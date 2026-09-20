@@ -29,23 +29,36 @@ def runtime_args(**overrides):
         "dog_rotate_scale": 0.50,
         "arm_pose_scale": 1.0,
         "lock_arm_orientation": True,
-        "i_understand_this_will_move_the_airbot": True,
-        "i_understand_this_will_control_the_dog": True,
     }
     values.update(overrides)
     return Namespace(**values)
 
 
 class MainRuntimeTests(unittest.TestCase):
-    def test_hardware_real_dog_requires_confirmed_real_arm(self):
+    def test_hardware_real_dog_requires_real_airbot_pose_backend(self):
         with mock.patch.object(main, "L1WDogClient") as client:
             main._make_dog_client(runtime_args())
             client.assert_called_once()
 
-        with self.assertRaisesRegex(RuntimeError, "confirmed AIRBOT"):
+        with self.assertRaisesRegex(RuntimeError, "AIRBOT pose teleoperation"):
             main._make_dog_client(
-                runtime_args(i_understand_this_will_move_the_airbot=False)
+                runtime_args(arm_backend="mock")
             )
+
+    def test_hardware_defaults_lock_orientation_and_one_to_one_scale(self):
+        parser = main._argument_parser()
+        args = parser.parse_args(
+            [
+                "--source", "xrt",
+                "--command-mode", "hardware",
+                "--dog-backend", "l1w",
+                "--arm-backend", "airbot",
+            ]
+        )
+
+        self.assertEqual(args.rate, 50.0)
+        self.assertEqual(args.arm_pose_scale, 1.0)
+        self.assertTrue(args.lock_arm_orientation)
 
     def test_hardware_mapping_stops_dog_while_arm_tracks(self):
         config = main._mapping_config(runtime_args())

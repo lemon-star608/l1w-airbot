@@ -195,9 +195,7 @@ cd ~/ws/pico-L1W
 PYTHONPATH=. python3 -m l1w_teleop \
   --source xrt --command-mode hardware \
   --dog-backend l1w --arm-backend airbot --arm-mode pose \
-  --rate 50 --lock-arm-orientation --arm-pose-scale 1.0 \
-  --i-understand-this-will-control-the-dog \
-  --i-understand-this-will-move-the-airbot
+  --duration 0
 ```
 
 Operator controls:
@@ -263,7 +261,8 @@ environment.
 ## Safety boundaries
 
 The executable defaults to monitor mode and does not dispatch commands. Real
-motion requires explicit confirmation flags. Hardware sessions must keep the
+motion requires explicitly selecting hardware command mode and real backends.
+Hardware sessions must keep the
 handheld safety controller available and the area clear. AIRBOT uses `can1`,
 not the NX board CAN `can0`.
 

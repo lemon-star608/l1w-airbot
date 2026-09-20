@@ -66,19 +66,16 @@ Cartesian target.
 
 ```sh
 PYTHONPATH=. python -m l1w_teleop --source xrt --command-mode hardware \
-  --arm-backend airbot --arm-mode pose --rate 50 --lock-arm-orientation \
-  --i-understand-this-will-move-the-airbot
+  --arm-backend airbot --arm-mode pose
 ```
 
-The default uses one-to-one scale. If a direction is wrong or tracking is too
-aggressive, temporarily reduce only `--arm-pose-scale`; restoring this flag to
-`1.0` returns to one-to-one mapping.
+The defaults are 50 Hz, locked end orientation, and one-to-one scale. If a
+direction is wrong or tracking is too aggressive, temporarily reduce only
+`--arm-pose-scale`; restoring this flag to `1.0` returns to one-to-one mapping.
 
 ```sh
 PYTHONPATH=. python -m l1w_teleop --source xrt --command-mode hardware \
-  --arm-backend airbot --arm-mode pose --rate 50 --lock-arm-orientation \
-  --arm-pose-scale 0.5 \
-  --i-understand-this-will-move-the-airbot
+  --arm-backend airbot --arm-mode pose --arm-pose-scale 0.5
 ```
 
 The log prints commanded `arm p=...`, measured `armcur=...`, and
@@ -92,7 +89,8 @@ rotation from the grip anchor, and applied one-to-one to the AIRBOT
 end-effector orientation. Releasing right grip resets the orientation anchor
 just as it resets the translation anchor.
 
-For diagnosing Cartesian tracking, add `--lock-arm-orientation`. This holds the
+Orientation tracking can be enabled during debugging with
+`--no-lock-arm-orientation`. Locked orientation holds the
 SDK return-zero end orientation and maps the controller only to target
 position. Releasing and re-engaging the grip re-anchors translation only; the
 locked orientation does not change. A fixed horizontal-gripper quaternion at
