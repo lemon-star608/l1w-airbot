@@ -9,6 +9,7 @@ from l1w_teleop.control import (
     MappingConfig,
     RobotCommands,
 )
+from l1w_teleop.control.mapping import _unit_quaternion
 from l1w_teleop.input.models import ControllerFrame, TeleopInputs
 
 
@@ -370,13 +371,11 @@ class InputMappingTests(unittest.TestCase):
         self.assertAlmostEqual(moved.arm.position[0], 0.30)
         self.assertAlmostEqual(moved.arm.position[1], -0.30)
         self.assertAlmostEqual(moved.arm.position[2], 0.20)
-        for actual, expected in zip(
-            moved.arm.orientation, MappingConfig.lock_orientation_target
-        ):
-            self.assertAlmostEqual(actual, expected, places=8)
+        normalized_current = _unit_quaternion(arm_pose[1])
+        self.assertEqual(moved.arm.orientation, normalized_current)
 
 
-    def test_pose_mode_can_lock_zero_orientation(self):
+    def test_pose_mode_locked_orientation_holds_the_anchor_orientation(self):
         arm_pose = ((0.30, 0.00, 0.20), (0.0, 0.0, 0.5, -0.5))
         mapping = InputMapping(
             MappingConfig(
@@ -392,7 +391,10 @@ class InputMappingTests(unittest.TestCase):
         )
 
         self.assertTrue(moved.arm.enabled)
-        self.assertEqual(moved.arm.orientation, (0.0, 0.0, 0.0, 1.0))
+        for actual, expected in zip(
+            moved.arm.orientation, _unit_quaternion((0.0, 0.0, 0.5, -0.5))
+        ):
+            self.assertAlmostEqual(actual, expected, places=12)
 
     def test_release_sets_velocity_to_zero(self):
         result = InputMapping().map(

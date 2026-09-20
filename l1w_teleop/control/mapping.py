@@ -163,7 +163,7 @@ class InputMapping:
         desired_p = tuple(anchor_ap[i] + delta_p[i] for i in range(3))
 
         if config.lock_orientation:
-            desired_q = _unit_quaternion(config.lock_orientation_target)
+            desired_q = anchor_aq
         else:
             controller_world_q = _frame_rotation_quaternion(controller_orientation)
             anchor_world_q = _frame_rotation_quaternion(anchor_cq)
