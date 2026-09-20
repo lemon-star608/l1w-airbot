@@ -32,8 +32,8 @@ NX 运行环境已经安装并配置好以下互相独立的软件栈：
 | --- | --- | --- | --- |
 | GENISOM L1-W SDK | 本仓库固定版本 submodule | 狗 UDP 协议、状态解析和可选 C++ 诊断 | [zsibot/genisom_L1_sdk](https://github.com/zsibot/genisom_L1_sdk) |
 | AIRBOT Play 服务端和 Python SDK | NX | 机械臂 gRPC 服务、IK、限位、规划和 Python 客户端 | [AIRBOT 文档](https://docs.discover-robotics.com) |
-| XRoboToolkit PC-Service | NX `/opt/apps/roboticsservice` | PICO 输入传输 | [X-Robotics/XRoboToolkit-PC-Service](https://github.com/X-Robotics/XRoboToolkit-PC-Service) |
-| XRoboToolkit Python binding | NX Python 3.10 用户包 | 读取手柄状态 | [X-Robotics/XRoboToolkit-PC-Service-Pybind](https://github.com/X-Robotics/XRoboToolkit-PC-Service-Pybind) |
+| XRoboToolkit PC-Service | NX `/opt/apps/roboticsservice` | PICO 输入传输 | [XR-Robotics/XRoboToolkit-PC-Service](https://github.com/XR-Robotics/XRoboToolkit-PC-Service) |
+| XRoboToolkit Python binding | NX Python 3.10 用户包 | 读取手柄状态 | [XR-Robotics/XRoboToolkit-PC-Service-Pybind](https://github.com/XR-Robotics/XRoboToolkit-PC-Service-Pybind) |
 | XRoboToolkit PICO App | PICO 头显 | 手柄输入和连接界面 | [XR-Robotics/XRoboToolkit-Unity-Client-Quest](https://github.com/XR-Robotics/XRoboToolkit-Unity-Client-Quest) |
 
 当前部署版本为 `airbot-arm 5.2.5`、`arm-sdk 5.2.3`、XRoboToolkit PICO App

@@ -33,8 +33,8 @@ The NX runtime is already provisioned with the following independent stacks:
 | --- | --- | --- | --- |
 | GENISOM L1-W SDK | pinned submodule in this repository | Dog UDP protocol, state decoding, and optional C++ diagnostics | [zsibot/genisom_L1_sdk](https://github.com/zsibot/genisom_L1_sdk) |
 | AIRBOT Play service and Python SDK | NX | Arm gRPC server, IK, limits, planning, and Python client | [AIRBOT documentation](https://docs.discover-robotics.com) |
-| XRoboToolkit PC-Service | NX `/opt/apps/roboticsservice` | PICO input transport | [X-Robotics/XRoboToolkit-PC-Service](https://github.com/X-Robotics/XRoboToolkit-PC-Service) |
-| XRoboToolkit Python binding | NX Python 3.10 user packages | Controller state access | [X-Robotics/XRoboToolkit-PC-Service-Pybind](https://github.com/X-Robotics/XRoboToolkit-PC-Service-Pybind) |
+| XRoboToolkit PC-Service | NX `/opt/apps/roboticsservice` | PICO input transport | [XR-Robotics/XRoboToolkit-PC-Service](https://github.com/XR-Robotics/XRoboToolkit-PC-Service) |
+| XRoboToolkit Python binding | NX Python 3.10 user packages | Controller state access | [XR-Robotics/XRoboToolkit-PC-Service-Pybind](https://github.com/XR-Robotics/XRoboToolkit-PC-Service-Pybind) |
 | XRoboToolkit PICO app | PICO headset | Controller input and app connection | [XR-Robotics/XRoboToolkit-Unity-Client-Quest](https://github.com/XR-Robotics/XRoboToolkit-Unity-Client-Quest) |
 
 The deployed versions are `airbot-arm 5.2.5`, `arm-sdk 5.2.3`, and the
