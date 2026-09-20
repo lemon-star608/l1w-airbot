@@ -1,5 +1,7 @@
 # PICO L1-W + AIRBOT teleoperation
 
+中文说明见 [`README.zh-CN.md`](README.zh-CN.md)。
+
 This project runs on the NX compute unit inside a GENISOM L1-W robot dog. It
 uses a PICO 4 Ultra controller pair to teleoperate the dog through the L1-W
 SDK UDP endpoint and an AIRBOT Play G2 arm through the official AIRBOT gRPC
