@@ -18,7 +18,89 @@ NX can1               -> DISCOVER USB-CAN -> AIRBOT arm
 The NX is `robot@192.168.234.234`. The 3588 dog controller is reachable at
 `192.168.234.1`; do not point dog commands at the NX itself.
 
-## Deploy once on NX
+## Software stack
+
+Three independent SDK stacks are used. Do not confuse their install locations.
+
+### GENISOM L1-W dog SDK
+
+- Source: `third_party/genisom_L1_sdk`, a pinned git submodule.
+- Runtime protocol: UDP JSON. The NX sends commands to the 3588 dog controller
+  at `192.168.234.1:8081` and receives state on local UDP 8080.
+- The Python teleop runtime implements this protocol directly and needs no
+  package installation on the NX.
+- The optional C++ `status_monitor` links the submodule's prebuilt
+  `libzsibot.a`; it is a ground-truth diagnostic, not part of daily teleop.
+- Initialize it with `git submodule update --init --recursive`.
+
+### AIRBOT Play G2 arm service and Python SDK
+
+These are already installed on the current NX:
+
+- Service: `airbot-arm 5.2.5`, executable `/usr/bin/airbot-arm`, gRPC port
+  `50051`.
+- Python client: `arm_sdk 5.2.3`, imported as `arm_sdk`.
+- Runtime dependencies: `grpcio` and a current protobuf runtime.
+- The server performs IK, limits, planning, and the servo stale watchdog. This
+  repository does not implement arm IK.
+- The service has no systemd unit and must be started manually after the work
+  area is confirmed clear.
+
+Local recovery artifacts on the development machine:
+
+```text
+/home/lemon/下载/airbot_arm_release/product/aarch64/jammy/airbot-arm_5.2.5_arm64.deb
+/home/lemon/下载/dist/aarch64/arm_sdk-5.2.3-py3-none-any.whl
+```
+
+To reinstall on a clean NX:
+
+```bash
+sudo apt install -y ./airbot-arm_5.2.5_arm64.deb
+python3 -m pip install --user ./arm_sdk-5.2.3-py3-none-any.whl
+```
+
+The pip resolver may select an older generated-code-compatible protobuf
+runtime if left unconstrained. After installation verify imports with:
+
+```bash
+python3 -c 'import arm_sdk, grpc, google.protobuf; print(arm_sdk.version(), grpc.__version__, google.protobuf.__version__)'
+```
+
+If import fails, install the protobuf/grpcio versions documented in
+`docs/airbot-runtime.md` or copy the known-good `~/.local` packages from the
+current NX.
+
+### XRoboToolkit PICO input stack
+
+PC-Service and the PICO app provide controller input only. They do not talk to
+the dog or arm directly.
+
+- PICO app: `XRoboToolkit-PICO-1.1.1.apk`, installed on the headset.
+- NX service: `XRoboToolkit-PC-Service-headless_1.0.0.0_arm64.deb`, installed
+  at `/opt/apps/roboticsservice`.
+- Python binding: compiled on the NX from the official pybind source. It links
+  the `libPXREARobotSDK.so` shipped inside the PC-Service deb.
+- Binding build dependencies: pybind source, `nlohmann/json.hpp`, and the
+  offline pybind11 wheel. These are copied automatically by the deployment
+  script.
+- Service ports: PICO app connects to NX TCP `63901`; the Python binding talks
+  to localhost TCP `60061`.
+
+Development-machine artifacts:
+
+```text
+/home/lemon/ws-motphys/vendor/binaries/XRoboToolkit-PICO-1.1.1.apk
+/home/lemon/ws-motphys/vendor/binaries/XRoboToolkit-PC-Service-headless_1.0.0.0_arm64.deb
+/home/lemon/ws-motphys/vendor/pybind-repo
+/home/lemon/ws-motphys/vendor/include/nlohmann
+/home/lemon/ws-motphys/vendor/wheels/aarch64/pybind11-2.13.6-py3-none-any.whl
+```
+
+Do not run the pybind repository's `setup_orin.sh`; it downloads a large
+PC-Service source tree that the headless deb already provides.
+
+## One-time NX deployment
 
 From the development machine:
 
@@ -34,18 +116,77 @@ installed separately with:
 ./scripts/nx/nx_airbot_can_setup.sh robot@192.168.234.234
 ```
 
-## Daily bring-up
+The deploy script requires passwordless sudo for the `robot` user. On a clean
+NX, configure it once:
 
-The complete procedure, including read-only checks and stop order, is in
-[`docs/nx-pico-teleop-runbook.md`](docs/nx-pico-teleop-runbook.md).
+```bash
+ssh robot@192.168.234.234
+echo 'robot ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/robot
+sudo chmod 440 /etc/sudoers.d/robot
+```
 
-Start the AIRBOT service in a foreground NX session:
+It also requires `cmake`, `g++`, Python 3.10, and `/usr/include/python3.10/Python.h`;
+Ubuntu's `build-essential`, `cmake`, and `python3-dev` packages provide these.
+
+Deployment result:
+
+```text
+~/ws/pico-L1W                 project source and scripts
+/opt/apps/roboticsservice     PC-Service arm64 installation
+xrobo-pc-service.service      PC-Service systemd unit
+airbot-can1.service           can1 persistence for DISCOVER USB-CAN
+~/.local/lib/python3.10/site-packages/xrobotoolkit_sdk*.so
+```
+
+After deployment, connect the PICO app to `192.168.234.234`. Do not use
+`192.168.234.1`; that address is the 3588 dog controller.
+
+## Real-robot use
+
+The detailed procedure is
+[`docs/nx-pico-teleop-runbook.md`](docs/nx-pico-teleop-runbook.md). The
+essential sequence is below.
+
+1. SSH to the NX:
+
+```bash
+ssh robot@192.168.234.234
+```
+
+2. Confirm the persistent services and CAN interface:
+
+```bash
+systemctl is-active airbot-can1 xrobo-pc-service
+ip -brief link show can1
+pgrep -af RoboticsServiceProcess
+```
+
+3. Put on the headset, open the XRoboToolkit app, and connect it to
+   `192.168.234.234`.
+
+4. In a foreground NX session, start the AIRBOT service:
 
 ```bash
 sudo airbot-arm --address 127.0.0.1:50051 -i can1 -t airbot_play_g2 --no-return
 ```
 
-Then start combined hardware teleoperation in another session:
+Keep this session open.
+
+5. In another NX session, run read-only checks:
+
+```bash
+cd ~/ws/pico-L1W
+PYTHONPATH=. python3 scripts/airbot/airbot_probe.py --host localhost --port 50051
+PYTHONPATH=. python3 -m l1w_teleop \
+  --source xrt --command-mode monitor \
+  --dog-backend l1w-status --arm-backend airbot \
+  --rate 50 --duration 0
+```
+
+Input must report `OK`, the dog state must be connected, and the arm state
+must be readable before continuing.
+
+6. Start combined hardware teleoperation:
 
 ```bash
 cd ~/ws/pico-L1W
@@ -57,10 +198,30 @@ PYTHONPATH=. python3 -m l1w_teleop \
   --i-understand-this-will-move-the-airbot
 ```
 
-Left X enters motion mode and stands the dog; left trigger is the dog
-deadman; left joystick drives the dog. Right grip is the arm deadman; right
-trigger controls the gripper. Right B commands dog damping. Arm tracking
-forces the dog through its stop/settle cycle.
+Operator controls:
+
+- Left X: stand the dog and enter motion mode.
+- Left trigger: dog deadman.
+- Left joystick: drive the dog; releasing the trigger zeroes dog motion.
+- Right grip: arm deadman and Cartesian anchor.
+- Right trigger: open the gripper.
+- Right B: command dog damping.
+- Ctrl+C: stop teleop after pressing right B and releasing both deadmen.
+
+Arm and dog commands are deliberately time-shared. Engaging the right grip
+stops and settles the dog; dog motion can resume only after the arm deadman is
+released. Stop `l1w_teleop` first, then stop `airbot-arm`.
+
+For the first session on a new deployment, add a bounded duration and lower
+dog scales, for example:
+
+```bash
+--duration 10 --dog-forward-scale 0.25 \
+--dog-lateral-scale 0.15 --dog-rotate-scale 0.25
+```
+
+Keep the handheld safety controller available and keep the area clear. These
+commands move real hardware.
 
 ## Repository layout
 
