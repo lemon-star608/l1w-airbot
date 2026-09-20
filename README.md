@@ -174,7 +174,19 @@ sudo airbot-arm --address 127.0.0.1:50051 -i can1 -t airbot_play_g2 --no-return
 
 Keep this session open.
 
-5. In another NX session, run read-only checks:
+5. Return the arm to its zero joint pose. The teleop runtime locks Cartesian
+   orientation to the SDK zero-pose quaternion `(0, 0, 0, 1)`, so starting
+   from a nonzero bent pose can make the first Cartesian target fail IK:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+arm-sdk examples run airbot_example_return_zero
+```
+
+This physically moves the arm. Keep people and fixtures clear, and wait until
+the joint readings are near zero before continuing.
+
+6. In another NX session, run read-only checks:
 
 ```bash
 cd ~/ws/pico-L1W
@@ -188,7 +200,7 @@ PYTHONPATH=. python3 -m l1w_teleop \
 Input must report `OK`, the dog state must be connected, and the arm state
 must be readable before continuing.
 
-6. Start combined hardware teleoperation:
+7. Start combined hardware teleoperation:
 
 ```bash
 cd ~/ws/pico-L1W

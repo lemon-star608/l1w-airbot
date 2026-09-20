@@ -166,7 +166,18 @@ pgrep -af RoboticsServiceProcess
 sudo airbot-arm --address 127.0.0.1:50051 -i can1 -t airbot_play_g2 --no-return
 ```
 
-5. 在另一个 NX 会话中执行只读检查：
+5. 将机械臂回零位。遥操作运行时会把笛卡尔姿态锁定为 SDK 零位四元数
+   `(0, 0, 0, 1)`；如果机械臂从非零的弯曲位姿启动，第一条笛卡尔命令可能
+   无 IK 解：
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+arm-sdk examples run airbot_example_return_zero
+```
+
+这一步会让机械臂真实运动。请清空人员和障碍物，并等关节读数接近零后再继续。
+
+6. 在另一个 NX 会话中执行只读检查：
 
 ```bash
 cd ~/ws/pico-L1W
@@ -179,7 +190,7 @@ PYTHONPATH=. python3 -m l1w_teleop \
 
 必须确认 PICO 输入显示 `OK`，狗状态 connected，机械臂状态可读，然后才能继续。
 
-6. 启动狗和机械臂联合硬件遥操作：
+7. 启动狗和机械臂联合硬件遥操作：
 
 ```bash
 cd ~/ws/pico-L1W

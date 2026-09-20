@@ -105,8 +105,17 @@ This reads AIRBOT and dog state but does not acquire control or dispatch
 motion. Do not run the C++ status monitor at the same time; both bind UDP
 receive port 8080.
 
-4. Start combined hardware teleoperation only after both read-only checks are
-   healthy and the area is clear:
+4. Return the arm to zero before Cartesian teleoperation. Hardware mode locks
+   orientation to the SDK zero-pose quaternion `(0, 0, 0, 1)`; starting from a
+   bent pose can make the first target fail IK:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+arm-sdk examples run airbot_example_return_zero
+```
+
+5. Start combined hardware teleoperation only after both read-only checks, the
+   zero-return motion, and the area-clear confirmation are complete:
 
 ```bash
 cd ~/ws/pico-L1W
@@ -117,7 +126,7 @@ PYTHONPATH=. python3 -m l1w_teleop \
 ```
 
 This is the same command already validated on the development machine. The
-defaults are 50 Hz, locked arm orientation, and one-to-one PICO pose tracking.
+defaults are 50 Hz, zero-pose arm orientation, and one-to-one PICO translation.
 On the NX, `--arm-host` defaults to localhost and `--dog-host` defaults to
 `192.168.234.1`, so neither needs changing.
 

@@ -36,20 +36,19 @@ report firmware gripper type `NULL` and print a validation warning. That
 warning is harmless for G2 because the adapter has already applied the G2
 limit before sending the command.
 
-## Optional ready-pose helper
+## Required zero-pose step before Cartesian teleoperation
 
-Hardware teleoperation can start from the zero pose; the runtime does not
-require a joint-pose gate. For a manually controlled, more comfortable bent
-starting pose, use:
+Hardware teleoperation locks the end orientation to the SDK zero-pose
+quaternion `(0, 0, 0, 1)`. Return the arm to zero before every session:
 
 ```sh
-PYTHONPATH=. python scripts/airbot/airbot_ready_pose_test.py --duration 6 \
-  --i-understand-this-will-move-the-airbot
+export PATH="$HOME/.local/bin:$PATH"
+arm-sdk examples run airbot_example_return_zero
 ```
 
-The target joint pose is `(0, -0.45, 0.85, -0.75, -0.5, 0)` radians. This step
-is optional and is not a precondition for PICO tracking. Keep people and
-fixtures clear while the arm moves.
+Wait until the reported joint angles are near zero. Starting from a bent pose
+can make the first locked-orientation Cartesian target fail IK. Keep people
+and fixtures clear while the arm moves.
 
 ## PICO tracking run
 

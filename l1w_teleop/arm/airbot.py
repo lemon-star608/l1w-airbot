@@ -13,8 +13,6 @@ class AirbotArmClient(ArmClient):
     """
 
     G2_GRIPPER_RANGE = (0.0, 0.072)
-    READY_JOINTS = (0.0, -0.45, 0.85, -0.75, -0.5, 0.0)
-    READY_JOINT_TOLERANCE_RAD = 0.15
     POSE_COMMAND_EPSILON_M = 0.001
     POSE_COMMAND_EPSILON_RAD = 0.02
     REJECTED_POSE_RETRY_S = 0.5
@@ -90,15 +88,6 @@ class AirbotArmClient(ArmClient):
         if state is None:
             return None
         return tuple(float(value) for value in state.angles)
-
-    def is_at_ready_pose(self) -> bool:
-        joints = self.get_joint_angles()
-        if joints is None or len(joints) != len(self.READY_JOINTS):
-            return False
-        return all(
-            abs(actual - target) <= self.READY_JOINT_TOLERANCE_RAD
-            for actual, target in zip(joints, self.READY_JOINTS)
-        )
 
     def send_cartesian_velocity(self, vx: float, vy: float, vz: float, gripper: float) -> None:
         raise NotImplementedError("AIRBOT velocity control is not enabled yet")

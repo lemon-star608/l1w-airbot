@@ -20,10 +20,6 @@ class FakeJointState:
     angles = (0.1, -0.2, 0.3, -0.1, 0.2, -0.3)
 
 
-class FakeReadyJointState:
-    angles = (0.0, -0.45, 0.85, -0.75, -0.5, 0.0)
-
-
 class FakeOptions:
     last = None
 
@@ -58,18 +54,6 @@ class AirbotArmClientTests(unittest.TestCase):
             client.get_joint_angles(),
             (0.1, -0.2, 0.3, -0.1, 0.2, -0.3),
         )
-        sdk_client.acquire_control.assert_not_called()
-
-    def test_checks_ready_pose_without_enabling_control(self):
-        client = AirbotArmClient.__new__(AirbotArmClient)
-        sdk_client = mock.Mock()
-        client._client = sdk_client
-
-        sdk_client.get_arm_joint_state.return_value = FakeReadyJointState()
-        self.assertTrue(client.is_at_ready_pose())
-
-        sdk_client.get_arm_joint_state.return_value = FakeJointState()
-        self.assertFalse(client.is_at_ready_pose())
         sdk_client.acquire_control.assert_not_called()
 
     def test_motion_requires_explicit_enable(self):
