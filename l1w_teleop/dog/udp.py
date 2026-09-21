@@ -43,6 +43,9 @@ class DogStatus:
     forward_mps: Optional[float] = None
     lateral_mps: Optional[float] = None
     yaw_rate_rps: Optional[float] = None
+    imu_wxyz: Optional[Tuple[float, float, float, float]] = None
+    odom_xyz: Optional[Tuple[float, float, float]] = None
+    leg_joints: Optional[Tuple[float, ...]] = None
     fault_count: Optional[int] = None
     speed_level: Optional[str] = None
 
@@ -212,6 +215,20 @@ class L1WUdpStatusMonitor(DogStatusMonitor):
                 changed = {
                     "speed_level": _speed_level(message.get("level")),
                 }
+            elif message_type == "imu_info":
+                quaternion = _find_vector(
+                    message, 4, ("quaternion", "quat", "orientation")
+                )
+                if quaternion is not None:
+                    changed = {"imu_wxyz": _unit_quaternion(quaternion)}
+            elif message_type == "odom_info":
+                position = _find_vector(message, 3, ("position", "pos", "pose"))
+                if position is not None:
+                    changed = {"odom_xyz": position}
+            elif message_type == "leg_joint_info":
+                legs = _find_leg_angles(message)
+                if legs is not None:
+                    changed = {"leg_joints": legs}
             elif message_type == "fault_info":
                 faults = message.get("faults")
                 if isinstance(faults, list):
@@ -260,3 +277,124 @@ def _optional_int(value) -> Optional[int]:
 
 def _scale(value: Optional[float], factor: float) -> Optional[float]:
     return value * factor if value is not None else None
+
+
+def _find_vector(message, size, preferred_names):
+    if not isinstance(message, dict):
+        return None
+    for name in preferred_names:
+        value = message.get(name)
+        converted = _numeric_tuple(value, size)
+        if converted is not None:
+            return converted
+    for value in message.values():
+        if isinstance(value, dict):
+            result = _find_vector(value, size, preferred_names)
+            if result is not None:
+                return result
+        elif isinstance(value, (list, tuple)):
+            converted = _numeric_tuple(value, size)
+            if converted is not None:
+                return converted
+    return None
+
+
+def _find_leg_angles(message):
+    if not isinstance(message, dict):
+        return None
+    for name in ("angles", "angle", "positions", "position"):
+        converted = _numeric_tuple(message.get(name), 16)
+        if converted is not None:
+            return converted
+    grouped = _grouped_leg_angles(message)
+    if grouped is not None:
+        return grouped
+    for value in message.values():
+        if isinstance(value, dict):
+            result = _find_leg_angles(value)
+            if result is not None:
+                return result
+    for value in message.values():
+        if isinstance(value, list):
+            converted = _numeric_tuple(value, 16)
+            if converted is not None:
+                return converted
+    named = _named_leg_angles(message)
+    if named is not None:
+        return named
+    nested = []
+    for value in message.values():
+        if not isinstance(value, dict):
+            continue
+        converted = _numeric_tuple(value, 4)
+        if converted is not None:
+            nested.append(converted)
+        if len(nested) == 4:
+            return tuple(value for leg in nested for value in leg)
+    return None
+
+
+def _grouped_leg_angles(message):
+    """Convert firmware joint-major arrays to the viewer's leg-major order."""
+    joint_names = (
+        "leg_abad_joint",
+        "leg_hip_joint",
+        "leg_knee_joint",
+        "leg_foot_joint",
+    )
+    for group in (message, message.get("leg_joint_info")):
+        if not isinstance(group, dict):
+            continue
+        joints = tuple(_numeric_tuple(group.get(name), 4) for name in joint_names)
+        if all(joint is not None for joint in joints):
+            return tuple(
+                joints[joint_index][leg_index]
+                for leg_index in range(4)
+                for joint_index in range(4)
+            )
+    return None
+
+
+def _named_leg_angles(message):
+    names = (
+        ("lf", "left_front", "fl"),
+        ("rf", "right_front", "fr"),
+        ("lr", "left_rear", "rl"),
+        ("rr", "right_rear", "rear_right"),
+    )
+    normalized = {str(key).lower(): value for key, value in message.items()}
+    flattened = []
+    for alternatives in names:
+        leg = None
+        for name in alternatives:
+            value = normalized.get(name)
+            if isinstance(value, dict):
+                value = next((item for item in value.values() if isinstance(item, (list, tuple))), None)
+            converted = _numeric_tuple(value, 4)
+            if converted is not None:
+                leg = converted
+                break
+        if leg is None:
+            return None
+        flattened.extend(leg)
+    return tuple(flattened)
+
+
+def _numeric_tuple(value, size):
+    if not isinstance(value, (list, tuple)) or len(value) < size:
+        return None
+    try:
+        converted = tuple(float(item) for item in value[:size])
+    except (TypeError, ValueError):
+        return None
+    if not all(math.isfinite(item) for item in converted):
+        return None
+    return converted
+
+
+def _unit_quaternion(value):
+    w, x, y, z = value
+    norm = math.sqrt(w * w + x * x + y * y + z * z)
+    if norm <= 1e-9:
+        return (1.0, 0.0, 0.0, 0.0)
+    return (w / norm, x / norm, y / norm, z / norm)

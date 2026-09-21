@@ -14,6 +14,7 @@ NX PC-Service         -> xrobotoolkit_sdk localhost TCP 60061
 NX l1w_teleop         -> 3588 狗控制器 192.168.234.1 UDP 8081
 NX l1w_teleop         -> 本机 AIRBOT 服务 TCP 50051
 NX can1               -> DISCOVER USB-CAN -> AIRBOT 机械臂
+Mac mujoco-teleop     <- NX schema-1 telemetry TCP 9766 through SSH
 ```
 
 NX 地址是 `robot@192.168.234.234`。3588 狗控制器地址是 `192.168.234.1`，
@@ -111,6 +112,20 @@ PYTHONPATH=. python3 -m l1w_teleop \
 
 默认值为 50 Hz、锁定零位姿态、PICO 平移一比一映射。NX 上 `--arm-host` 默认
 localhost，`--dog-host` 默认 `192.168.234.1`。
+
+使用 MuJoCo 数字孪生时，先把 NX 的 9766 端口通过 SSH 转发到 Mac，并在同一条
+hardware 命令中增加：
+
+```bash
+--telemetry-udp-port 0 \
+--telemetry-tcp-bind 127.0.0.1 \
+--telemetry-tcp-port 9766 \
+--telemetry-rate 60
+```
+
+viewer 仓库独立部署，在 Mac 上使用
+`mjpython -m mujoco_teleop --source tcp --host 127.0.0.1 --port 9766`。
+进入 hardware 前确认 viewer 显示 `legs=leg_joint_info arm=connected`。
 
 ## 操作和停止顺序
 

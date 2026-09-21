@@ -9,6 +9,7 @@ from .dog.l1w import L1WDogClient
 from .dog.mock import MockDogClient
 from .dog.udp import L1WUdpStatusMonitor
 from .input import MockInputSource, PicoInputMonitor, XRobotToolkitSource
+from .telemetry import TelelemetryPublisher, arm_telemetry, dog_telemetry
 
 
 def run() -> None:
@@ -23,6 +24,22 @@ def run() -> None:
     dog = _make_dog_client(args)
     dog_monitor = _make_dog_monitor(args, dog)
     arm = _make_arm_client(args)
+    telemetry_publisher = (
+        TelelemetryPublisher(
+            udp_host=args.telemetry_host,
+            udp_port=args.telemetry_udp_port,
+            tcp_host=args.telemetry_tcp_bind,
+            tcp_port=args.telemetry_tcp_port,
+            queue_seconds=1.0 / args.telemetry_rate,
+        )
+        if args.telemetry_udp_port or args.telemetry_tcp_port
+        else None
+    )
+    print(
+        f"telemetry udp={args.telemetry_host or 'off'}:{args.telemetry_udp_port} "
+        f"tcp={args.telemetry_tcp_bind or 'off'}:{args.telemetry_tcp_port}",
+        flush=True,
+    )
     running = True
 
     def stop(_signum, _frame):
@@ -78,6 +95,17 @@ def run() -> None:
                 current_arm_joints,
                 args.print_every,
             )
+            _publish_telemetry(
+                telemetry_publisher,
+                inputs=inputs,
+                stale=stale,
+                commands=commands,
+                dog_status=dog_monitor.status() if dog_monitor else None,
+                arm_backend=args.arm_backend,
+                arm=arm,
+                current_arm_pose=current_arm_pose,
+                current_arm_joints=current_arm_joints,
+            )
             iterations += 1
             next_tick += period
             sleep_s = next_tick - time.monotonic()
@@ -96,6 +124,8 @@ def run() -> None:
             arm.close()
         if dog_monitor is not None and args.dog_backend != "l1w":
             dog_monitor.close()
+        if telemetry_publisher is not None:
+            telemetry_publisher.close()
 
 
 def _parse_args():
@@ -103,6 +133,8 @@ def _parse_args():
     args = parser.parse_args()
     if not 0.0 < args.arm_pose_scale:
         parser.error("--arm-pose-scale must be positive")
+    if args.telemetry_rate <= 0:
+        parser.error("--telemetry-rate must be positive")
     for name in (
         "--dog-forward-scale",
         "--dog-lateral-scale",
@@ -175,12 +207,42 @@ def _argument_parser():
     )
     parser.add_argument(
         "--lock-arm-orientation",
-        action=argparse.BooleanOptionalAction,
+        action=_lock_arm_orientation_action(),
         default=True,
         help="Hold the SDK return-zero orientation and control position only "
         "(default: true).",
     )
+    parser.add_argument(
+        "--telemetry-host",
+        default="",
+        help="Mac destination IP for telemetry UDP; empty disables UDP.",
+    )
+    parser.add_argument(
+        "--telemetry-udp-port",
+        type=int,
+        default=8766,
+        help="UDP destination port; 0 disables UDP telemetry.",
+    )
+    parser.add_argument(
+        "--telemetry-tcp-bind",
+        default="0.0.0.0",
+        help="TCP telemetry bind address on NX; set empty to disable TCP.",
+    )
+    parser.add_argument(
+        "--telemetry-tcp-port",
+        type=int,
+        default=9766,
+        help="TCP telemetry port for SSH port forwarding; 0 disables TCP.",
+    )
+    parser.add_argument("--telemetry-rate", type=float, default=30.0)
     return parser
+
+
+def _lock_arm_orientation_action():
+    # argparse.BooleanOptionalAction is unavailable on the NX's Python 3.8.
+    if hasattr(argparse, "BooleanOptionalAction"):
+        return argparse.BooleanOptionalAction
+    return "store_true"
 
 
 def _make_dog_client(args):
@@ -322,6 +384,36 @@ def _dispatch_dog_motion(dog, commands: RobotCommands) -> None:
         dog.send_command(commands.dog.forward, commands.dog.rotate, commands.dog.lateral)
     else:
         dog.send_zero()
+
+
+def _publish_telemetry(
+    publisher,
+    *,
+    inputs,
+    stale,
+    commands,
+    dog_status,
+    arm_backend,
+    arm,
+    current_arm_pose,
+    current_arm_joints,
+):
+    if publisher is None:
+        return
+    try:
+        gripper = arm.current_gripper()
+    except Exception:
+        gripper = commands.arm.gripper
+    arm_connected = arm_backend == "airbot" and current_arm_joints is not None
+    publisher.publish(
+        {
+            "input": {"healthy": not stale, "motion_mode": commands.motion_mode},
+            "dog": dog_telemetry(dog_status),
+            "arm": arm_telemetry(
+                arm_connected, current_arm_joints, gripper, current_arm_pose
+            ),
+        }
+    )
 
 
 def _print_sample(

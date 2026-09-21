@@ -14,6 +14,7 @@ NX PC-Service         -> xrobotoolkit_sdk localhost TCP 60061
 NX l1w_teleop         -> dog controller / 3588 192.168.234.1 UDP 8081
 NX l1w_teleop         -> local AIRBOT service TCP 50051
 NX can1               -> DISCOVER USB-CAN -> AIRBOT arm
+Mac mujoco-teleop     <- NX schema-1 telemetry TCP 9766 through SSH
 ```
 
 The NX is `robot@192.168.234.234`. The 3588 dog controller is reachable at
@@ -120,6 +121,20 @@ PYTHONPATH=. python3 -m l1w_teleop \
 The defaults are 50 Hz, locked zero-pose arm orientation, and one-to-one PICO
 translation. On the NX, `--arm-host` defaults to localhost and `--dog-host`
 defaults to `192.168.234.1`.
+
+For the native MuJoCo digital twin, forward NX port 9766 to the Mac and add
+these telemetry options to the same hardware command:
+
+```bash
+--telemetry-udp-port 0 \
+--telemetry-tcp-bind 127.0.0.1 \
+--telemetry-tcp-port 9766 \
+--telemetry-rate 60
+```
+
+The viewer repository is separate; run it with `mjpython -m mujoco_teleop
+--source tcp --host 127.0.0.1 --port 9766`. Confirm the viewer reports
+`legs=leg_joint_info arm=connected` before hardware operation.
 
 ## Controls and Stop Order
 
