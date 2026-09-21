@@ -499,6 +499,29 @@ class CommandSafetyGateTests(unittest.TestCase):
         self.assertFalse(state.dog_enabled)
         self.assertFalse(state.arm_enabled)
 
+    def test_startup_defers_dog_mode_transition(self):
+        gate = CommandSafetyGate(startup_hold_s=10.0)
+        command = RobotCommands(dog_mode_command="stand_up", motion_mode="motion")
+        result, _ = gate.apply(command, True)
+        self.assertEqual(result.dog_mode_command, "")
+
+        gate._started_ns -= 11_000_000_000
+        result, _ = gate.apply(RobotCommands(motion_mode="motion"), True)
+        self.assertEqual(result.dog_mode_command, "stand_up")
+
+        result, _ = gate.apply(RobotCommands(motion_mode="motion"), True)
+        self.assertEqual(result.dog_mode_command, "")
+
+    def test_startup_clears_deferred_transition_on_input_loss(self):
+        gate = CommandSafetyGate(startup_hold_s=10.0)
+        gate.apply(
+            RobotCommands(dog_mode_command="stand_up", motion_mode="motion"), True
+        )
+        gate.apply(RobotCommands(motion_mode="motion"), False)
+        gate._started_ns -= 11_000_000_000
+        result, _ = gate.apply(RobotCommands(motion_mode="motion"), True)
+        self.assertEqual(result.dog_mode_command, "")
+
     def test_unhealthy_input_blocks_commands(self):
         gate = CommandSafetyGate(startup_hold_s=0.0)
         command = RobotCommands()
